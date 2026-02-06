@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pivot ITM Strategy Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0e27;
+            --bg-secondary: #121729;
+            --bg-card: #1a1f3a;
+            --accent-green: #00ff88;
+            --accent-red: #ff3366;
+            --accent-yellow: #ffd93d;
+            --accent-blue: #00d4ff;
+            --text-primary: #e8edf4;
+            --text-secondary: #8b95a8;
+            --border-color: #2a2f4a;
+            --glow-green: rgba(0, 255, 136, 0.3);
+            --glow-red: rgba(255, 51, 102, 0.3);
+            --glow-blue: rgba(0, 212, 255, 0.3);
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 136, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 212, 255, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(255, 51, 102, 0.03) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 2rem;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--accent-green), var(--accent-blue));
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .header-title {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .header-title h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-family: 'Space Mono', monospace;
+        }
+
+        .mode-badge {
+            padding: 0.5rem 1.5rem;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid var(--accent-green);
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--accent-green);
+            box-shadow: 0 0 20px var(--glow-green);
+        }
+
+        .mode-badge.live {
+            background: rgba(255, 51, 102, 0.1);
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+            box-shadow: 0 0 20px var(--glow-red);
+        }
+
+        /* Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Card Base */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        /* Market Status */
+        .market-status {
+            grid-column: span 3;
+        }
+
+        .status-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            border-left: 3px solid var(--border-color);
+        }
+
+        .status-item.active {
+            border-left-color: var(--accent-green);
+        }
+
+        .status-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .status-value {
+            font-weight: 600;
+            font-size: 1.125rem;
+        }
+
+        .status-value.large {
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Strategy Status */
+        .strategy-status {
+            grid-column: span 6;
+            text-align: center;
+        }
+
+        .strategy-state {
+            display: inline-block;
+            padding: 2rem 3rem;
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 212, 255, 0.1));
+            border: 2px solid var(--accent-green);
+            border-radius: 12px;
+            margin: 1rem 0;
+            box-shadow: 0 0 40px var(--glow-green);
+            animation: glow 3s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 40px var(--glow-green); }
+            50% { box-shadow: 0 0 60px var(--glow-green); }
+        }
+
+        .strategy-state.in-trade {
+            background: linear-gradient(135deg, rgba(255, 51, 102, 0.1), rgba(255, 211, 61, 0.1));
+            border-color: var(--accent-red);
+            box-shadow: 0 0 40px var(--glow-red);
+        }
+
+        @keyframes glow-red {
+            0%, 100% { box-shadow: 0 0 40px var(--glow-red); }
+            50% { box-shadow: 0 0 60px var(--glow-red); }
+        }
+
+        .strategy-state.in-trade {
+            animation: glow-red 2s ease-in-out infinite;
+        }
+
+        .state-text {
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .state-details {
+            margin-top: 1rem;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .detail-item {
+            padding: 0.75rem;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+        }
+
+        .detail-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .detail-value {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        /* Metrics */
+        .metrics {
+            grid-column: span 3;
+        }
+
+        .metric-item {
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+        }
+
+        .metric-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .metric-value.positive {
+            color: var(--accent-green);
+        }
+
+        .metric-value.negative {
+            color: var(--accent-red);
+        }
+
+        /* Trade Monitor */
+        .trade-monitor {
+            grid-column: span 12;
+        }
+
+        .trade-monitor-content {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 1rem;
+        }
+
+        .trade-stat {
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .trade-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .trade-stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .pnl-display {
+            grid-column: span 2;
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-card));
+            border: 2px solid var(--border-color);
+        }
+
+        .pnl-display.positive {
+            border-color: var(--accent-green);
+            box-shadow: 0 0 30px var(--glow-green);
+        }
+
+        .pnl-display.negative {
+            border-color: var(--accent-red);
+            box-shadow: 0 0 30px var(--glow-red);
+        }
+
+        .no-trade {
+            grid-column: span 6;
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+        }
+
+        /* Trade Log */
+        .trade-log {
+            grid-column: span 8;
+        }
+
+        .trade-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .trade-table thead {
+            background: var(--bg-secondary);
+        }
+
+        .trade-table th {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .trade-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.875rem;
+        }
+
+        .trade-table tbody tr:hover {
+            background: var(--bg-secondary);
+        }
+
+        .direction-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .direction-badge.call {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--accent-green);
+        }
+
+        .direction-badge.put {
+            background: rgba(255, 51, 102, 0.2);
+            color: var(--accent-red);
+        }
+
+        /* Event Feed */
+        .event-feed {
+            grid-column: span 4;
+            max-height: 400px;
+        }
+
+        .events-container {
+            max-height: 350px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .events-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .events-container::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 3px;
+        }
+
+        .events-container::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .events-container::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        .event-item {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: var(--bg-secondary);
+            border-left: 3px solid var(--accent-blue);
+            border-radius: 4px;
+            font-size: 0.875rem;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .event-time {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            margin-right: 0.5rem;
+        }
+
+        /* Connection Indicator */
+        .connection-status {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 0.75rem 1.25rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            z-index: 1000;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .status-dot.disconnected {
+            background: var(--accent-red);
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(6, 1fr);
+            }
+            
+            .market-status,
+            .metrics,
+            .event-feed {
+                grid-column: span 6;
+            }
+            
+            .strategy-status,
+            .trade-monitor,
+            .trade-log {
+                grid-column: span 6;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-title">
+                <h1>⚡ PIVOT ITM STRATEGY</h1>
+                <div class="header-subtitle">Real-time Trading Dashboard v2.1</div>
+            </div>
+            <div class="mode-badge" id="modeBadge">PAPER MODE</div>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Market Status -->
+            <div class="card market-status">
+                <div class="card-title">Market Data</div>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span class="status-label">Date</span>
+                        <span class="status-value" id="currentDate">--</span>
+                    </div>
+                    <div class="status-item active">
+                        <span class="status-label">Market</span>
+                        <span class="status-value" id="marketStatus">CLOSED</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Spot Price</span>
+                        <span class="status-value large" id="spotPrice">--</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Pivot Point</span>
+                        <span class="status-value" id="pivotPoint">--</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Bias</span>
+                        <span class="status-value" id="bias">--</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Distance</span>
+                        <span class="status-value" id="distance">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Strategy Status -->
+            <div class="card strategy-status">
+                <div class="card-title">Strategy Status</div>
+                <div class="strategy-state" id="strategyState">
+                    <div class="state-text" id="statusText">WAITING FOR MARKET</div>
+                </div>
+                <div class="state-details" id="stateDetails" style="display: none;">
+                    <div class="detail-item">
+                        <div class="detail-label">Direction</div>
+                        <div class="detail-value" id="direction">--</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Entry Zone</div>
+                        <div class="detail-value" id="entryZone">--</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Ready</div>
+                        <div class="detail-value" id="readiness">NO</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metrics -->
+            <div class="card metrics">
+                <div class="card-title">Performance Metrics</div>
+                <div class="metric-item">
+                    <div class="metric-label">Total Trades</div>
+                    <div class="metric-value" id="totalTrades">0</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Win Rate</div>
+                    <div class="metric-value" id="winRate">0%</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Net P&L</div>
+                    <div class="metric-value" id="totalPnl">₹0.00</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Max Drawdown</div>
+                    <div class="metric-value negative" id="maxDrawdown">₹0.00</div>
+                </div>
+            </div>
+
+            <!-- Trade Monitor -->
+            <div class="card trade-monitor">
+                <div class="card-title">Live Trade Monitor</div>
+                <div class="trade-monitor-content" id="tradeMonitor">
+                    <div class="no-trade">No active trade</div>
+                </div>
+            </div>
+
+            <!-- Trade Log -->
+            <div class="card trade-log">
+                <div class="card-title">Trade History</div>
+                <table class="trade-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Direction</th>
+                            <th>Entry</th>
+                            <th>Exit</th>
+                            <th>P&L</th>
+                            <th>P&L %</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tradeTableBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: var(--text-secondary);">No trades yet</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Event Feed -->
+            <div class="card event-feed">
+                <div class="card-title">Event Feed</div>
+                <div class="events-container" id="eventsContainer">
+                    <div class="event-item">
+                        <span class="event-time">--:--:--</span>
+                        <span>Waiting for data...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connection Status -->
+    <div class="connection-status">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="connectionText">Connected</span>
+    </div>
+
+    <script>
+        // State management
+        let lastEventCount = 0;
+        let isConnected = true;
+
+        // Fetch state from API
+        async function fetchState() {
+            try {
+                const response = await fetch('/api/state');
+                if (!response.ok) throw new Error('Failed to fetch state');
+                
+                const state = await response.json();
+                updateDashboard(state);
+                
+                if (!isConnected) {
+                    isConnected = true;
+                    updateConnectionStatus(true);
+                }
+            } catch (error) {
+                console.error('Error fetching state:', error);
+                if (isConnected) {
+                    isConnected = false;
+                    updateConnectionStatus(false);
+                }
+            }
+        }
+
+        // Update dashboard with new state
+        function updateDashboard(state) {
+            // Mode
+            const modeBadge = document.getElementById('modeBadge');
+            modeBadge.textContent = `${state.mode} MODE`;
+            modeBadge.className = state.mode === 'LIVE' ? 'mode-badge live' : 'mode-badge';
+
+            // Market data
+            document.getElementById('currentDate').textContent = state.current_date || '--';
+            document.getElementById('marketStatus').textContent = state.market_status || 'CLOSED';
+            document.getElementById('spotPrice').textContent = state.spot_price ? state.spot_price.toFixed(2) : '--';
+            document.getElementById('pivotPoint').textContent = state.pivot ? state.pivot.toFixed(2) : '--';
+            document.getElementById('bias').textContent = state.bias || '--';
+            document.getElementById('distance').textContent = 
+                state.distance_to_pivot !== null ? `${state.distance_to_pivot > 0 ? '+' : ''}${state.distance_to_pivot} pts` : '--';
+
+            // Strategy status
+            const strategyState = document.getElementById('strategyState');
+            const statusText = document.getElementById('statusText');
+            statusText.textContent = state.status || 'WAITING FOR MARKET';
+            
+            if (state.in_trade) {
+                strategyState.classList.add('in-trade');
+            } else {
+                strategyState.classList.remove('in-trade');
+            }
+
+            // Metrics
+            document.getElementById('totalTrades').textContent = state.metrics.total_trades || 0;
+            document.getElementById('winRate').textContent = `${state.metrics.win_rate || 0}%`;
+            
+            const pnlElement = document.getElementById('totalPnl');
+            const pnl = state.metrics.total_pnl || 0;
+            pnlElement.textContent = `₹${pnl.toFixed(2)}`;
+            pnlElement.className = pnl >= 0 ? 'metric-value positive' : 'metric-value negative';
+            
+            document.getElementById('maxDrawdown').textContent = `₹${(state.metrics.max_drawdown || 0).toFixed(2)}`;
+
+            // Trade monitor
+            updateTradeMonitor(state.current_trade, state.in_trade);
+
+            // Trade log
+            updateTradeLog(state.trades);
+
+            // Events
+            updateEvents(state.events);
+        }
+
+        // Update trade monitor
+        function updateTradeMonitor(trade, inTrade) {
+            const monitor = document.getElementById('tradeMonitor');
+            
+            if (!inTrade || !trade || Object.keys(trade).length === 0) {
+                monitor.innerHTML = '<div class="no-trade">No active trade</div>';
+                return;
+            }
+
+            const pnl = trade.pnl || 0;
+            const pnlPercent = trade.pnl_percent || 0;
+            const pnlClass = pnl >= 0 ? 'positive' : 'negative';
+
+            monitor.innerHTML = `
+                <div class="trade-stat">
+                    <div class="trade-stat-label">Symbol</div>
+                    <div class="trade-stat-value">${trade.symbol || '--'}</div>
+                </div>
+                <div class="trade-stat">
+                    <div class="trade-stat-label">Direction</div>
+                    <div class="trade-stat-value">${trade.direction || '--'}</div>
+                </div>
+                <div class="trade-stat">
+                    <div class="trade-stat-label">Entry</div>
+                    <div class="trade-stat-value">₹${(trade.entry_price || 0).toFixed(2)}</div>
+                </div>
+                <div class="trade-stat">
+                    <div class="trade-stat-label">Current</div>
+                    <div class="trade-stat-value">₹${(trade.current_price || 0).toFixed(2)}</div>
+                </div>
+                <div class="trade-stat pnl-display ${pnlClass}">
+                    <div class="trade-stat-label">P&L Amount</div>
+                    <div class="trade-stat-value">₹${pnl.toFixed(2)}</div>
+                </div>
+                <div class="trade-stat pnl-display ${pnlClass}">
+                    <div class="trade-stat-label">P&L %</div>
+                    <div class="trade-stat-value">${pnlPercent > 0 ? '+' : ''}${pnlPercent.toFixed(2)}%</div>
+                </div>
+            `;
+        }
+
+        // Update trade log
+        function updateTradeLog(trades) {
+            const tbody = document.getElementById('tradeTableBody');
+            
+            if (!trades || trades.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary);">No trades yet</td></tr>';
+                return;
+            }
+
+            // Show last 10 trades, most recent first
+            const recentTrades = trades.slice(-10).reverse();
+            
+            tbody.innerHTML = recentTrades.map(trade => {
+                const pnl = trade.pnl || 0;
+                const pnlClass = pnl >= 0 ? 'positive' : 'negative';
+                const dirClass = trade.direction === 'CALL' ? 'call' : 'put';
+                
+                return `
+                    <tr>
+                        <td>${trade.entry_time || '--'}</td>
+                        <td><span class="direction-badge ${dirClass}">${trade.direction || '--'}</span></td>
+                        <td>₹${(trade.entry_price || 0).toFixed(2)}</td>
+                        <td>₹${(trade.exit_price || 0).toFixed(2)}</td>
+                        <td class="${pnlClass}">₹${pnl.toFixed(2)}</td>
+                        <td class="${pnlClass}">${(trade.pnl_percent || 0) > 0 ? '+' : ''}${(trade.pnl_percent || 0).toFixed(2)}%</td>
+                        <td>${trade.exit_reason || '--'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Update events feed
+        function updateEvents(events) {
+            const container = document.getElementById('eventsContainer');
+            
+            if (!events || events.length === 0) {
+                container.innerHTML = '<div class="event-item"><span class="event-time">--:--:--</span><span>No events yet</span></div>';
+                return;
+            }
+
+            // Show last 20 events, most recent first
+            const recentEvents = events.slice(-20).reverse();
+            
+            // Only update if there are new events
+            if (events.length > lastEventCount) {
+                container.innerHTML = recentEvents.map(event => `
+                    <div class="event-item">
+                        <span class="event-time">${event.time || '--:--:--'}</span>
+                        <span>${event.message || ''}</span>
+                    </div>
+                `).join('');
+                
+                lastEventCount = events.length;
+            }
+        }
+
+        // Update connection status
+        function updateConnectionStatus(connected) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('connectionText');
+            
+            if (connected) {
+                dot.classList.remove('disconnected');
+                text.textContent = 'Connected';
+            } else {
+                dot.classList.add('disconnected');
+                text.textContent = 'Disconnected';
+            }
+        }
+
+        // Poll for updates every 2 seconds
+        setInterval(fetchState, 2000);
+
+        // Initial fetch
+        fetchState();
+    </script>
+</body>
+</html>
