@@ -43,12 +43,12 @@ def start_dashboard(host='127.0.0.1', port=5000):
     print(f"🌐 Dashboard server started at http://{host}:{port}")
     return thread
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    app.run(host="0.0.0.0", port=port)
+# if __name__ == "__main__":
+#     port = int(os.environ.get("PORT", 8000))
+#     app.run(host="0.0.0.0", port=port)
     
-# if __name__ == '__main__':
-#     # Test mode - run server directly
-#     print("🚀 Starting Pivot ITM Dashboard Server...")
-#     print("📊 Dashboard available at: http://127.0.0.1:5000")
-#     app.run(host='127.0.0.1', port=5000, debug=True)
+if __name__ == '__main__':
+    # Test mode - run server directly
+    print("🚀 Starting Pivot ITM Dashboard Server...")
+    print("📊 Dashboard available at: http://127.0.0.1:5000")
+    app.run(host='127.0.0.1', port=5000, debug=True)

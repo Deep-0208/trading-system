@@ -311,46 +311,59 @@ def get_first_5min_candle(groww):
 
 
 def determine_daily_bias(groww):
-    """Decide daily bias using FIRST 5-min candle vs pivot"""
+    """Decide daily bias using FIRST 5-min candle vs pivot + candle color"""
     import part1_config_and_utils as config
     
     if config.daily_bias is not None:
-        return  # Bias already locked
-
+        return  # Already decided
+    
     if config.daily_pivot_point is None:
         logging.error("❌ Pivot not available — cannot determine bias")
         return
-
-    # Check if we're past bias candle time
+    
+    # Wait until first 5-min candle is completed
     now = datetime.now().time()
     bias_end_time = datetime.strptime(BIAS_CANDLE_END, "%H:%M").time()
-    
     if now < bias_end_time:
         logging.debug(f"⏳ Waiting for bias candle completion ({BIAS_CANDLE_END})")
         return
-
+    
     first_candle = get_first_5min_candle(groww)
     if first_candle is None:
         return  # Candle not ready yet
-
+    
+    open_price = first_candle["open"]
     close_price = first_candle["close"]
-
-    # Determine bias
-    if close_price > config.daily_pivot_point:
+    
+    is_green = close_price > open_price
+    is_red = close_price < open_price
+    
+    # ✅ NEW CONFIRMED RULE: Candle color must align with pivot direction
+    if close_price > config.daily_pivot_point and is_green:
         config.daily_bias = "BULLISH"
-    elif close_price < config.daily_pivot_point:
+    
+    elif close_price < config.daily_pivot_point and is_red:
         config.daily_bias = "BEARISH"
+    
     else:
         logging.info("")
-        logging.info("⚖️  FIRST CANDLE CLOSED EXACTLY AT PIVOT - NO CLEAR BIAS")
-        logging.info("⛔ NO TRADE TODAY - Waiting for next trading day")
+        logging.info("╔" + "═" * 78 + "╗")
+        logging.info("║" + "  ⛔ FIRST 5-MIN CANDLE INVALID — NO TRADE TODAY ⛔".center(78) + "║")
+        logging.info("╚" + "═" * 78 + "╝")
         logging.info("")
-        config.daily_bias = "NEUTRAL"  # Mark as determined but no trade
+        logging.info(f"   📍 Pivot                    : {config.daily_pivot_point:.2f}")
+        logging.info(f"   🕯  Open                    : {open_price:.2f}")
+        logging.info(f"   🕯  Close                   : {close_price:.2f}")
+        logging.info(f"   📊 Candle Color             : {'GREEN' if is_green else 'RED' if is_red else 'DOJI'}")
+        logging.info(f"   ❌ Bias NOT confirmed       : Close vs Pivot mismatch or DOJI")
+        logging.info("")
+        config.daily_bias = "NEUTRAL"
         return
-
+    
+    # Lock bias for the day
     config.bias_lock_date = date.today()
     config.bias_candle_data = first_candle
-
+    
     log_daily_bias_banner(
         first_candle=first_candle,
         pivot=config.daily_pivot_point,
